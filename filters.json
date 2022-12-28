@@ -1,0 +1,19 @@
+[
+  ["border_color","silver"],
+  ["lang","ja"],
+  ["layout","planar"],
+  ["layout","scheme"],
+  ["layout","vanguard"],
+  ["oversized", true],
+  ["set_name","Magic Online Avatars"],
+  ["set_name","MicroPose Promos"],
+  ["set_name","Sega Dreamcast Cards"],
+  ["set_type","alchemy"],
+  ["set_type","funny"],
+  ["set_type","token"],
+  ["set_type","memorabilia"],
+  ["type_line","Artifact — Contraption"],
+  ["type_line","Conspiracy"],
+  ["type_line","Stickers"],
+  ["type_line","Token"]
+]
