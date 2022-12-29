@@ -15,9 +15,7 @@ def check_if_keep(card: dict, filters: list) -> bool:
   return all(card[criteria[0]] != criteria[1] for criteria in filters)
 
 def in_format(card: dict, format: str) -> bool:
-  if card['legalities'][format] == 'not_legal':
-    return False
-  return True
+  return card['legalities'][format] != 'not_legal'
 
 def generate_training_data(filename: str = 'cardlist.json', format='legacy'):
   with open(filename) as file:
@@ -30,10 +28,8 @@ def generate_training_data(filename: str = 'cardlist.json', format='legacy'):
 
   for card in format_cardpool:
     for attribute in unneeded_attributes:
-      try:
+      if attribute in card:
         del card[attribute]
-      except KeyError:
-        pass  # some cards don't have, e.g. flavor text, to remove.
 
   with open('training_data.jsonl', 'w') as file:
     for card in format_cardpool:
@@ -50,6 +46,7 @@ def main() -> None:
 
   if file_exists('cardlist.json'):
     generate_training_data()
-  
+
+
 if __name__ == '__main__':
   main()
