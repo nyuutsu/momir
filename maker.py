@@ -1,48 +1,11 @@
-from json import load
 from math import floor
 from time import time
-from os.path import exists as file_exists
 import openai
 
-def check_if_keep(card: dict, filters: list) -> bool:
-  if 'card_faces' in card:
-    return False
-  for criteria in filters:
-    if card[criteria[0]] == criteria[1]:
-      return False
-  return True
-
-def generate_training_data(filename: str) -> None:
-  with open(filename) as file:
-    cards = load(file)
-
-  with open('filters.json') as file:
-    filters = load(file)
-
-  with open('unneeded_attributes.json') as file:
-    unneeded_attributes = load(file)
-
-  fewer_cards = [card for card in cards if check_if_keep(card, filters)]
-
-  for card in fewer_cards:
-    for attribute in unneeded_attributes:
-      try:
-        del card[attribute]
-      except KeyError:
-        pass
-
-  with open('training_data.jsonl', 'w') as file:
-    for card in fewer_cards:
-      card_data = ""
-      for attribute,value in card.items():
-        card_data += attribute + ": " + str(value).replace("\"", "\'") + "\n"
-      card_data = card_data.replace("\n", "\\n")
-      file.write(f'{{"prompt":"{card["type_line"].split()[0]} ->","completion":" {card_data}ꙮ"}}\n')
-
-def make_card(type: str) -> dict:
+def make_card(supertype: str) -> dict:
   return dict(openai.Completion.create(
     model="davinci:ft-personal-2022-12-27-16-32-43",
-    prompt=f"{type} ->",
+    prompt=f"{supertype} ->",
     max_tokens=250,
     temperature=1,
     stop="ꙮ"
@@ -86,20 +49,11 @@ def save_deck(deck: list) -> None:
     for card in deck:      
       file.write(f'{card}\n')
 
-def main() -> None:  
-  if not file_exists('training_data.jsonl'):
-    # dl "Oracle Cards" @ https://scryfall.com/docs/api/bulk-data -> 'rename cardlist.json'
-    generate_training_data('cardlist.json')
-  else:
-    """
-    [probably remove a lot of entries for cost reasons, then]
-    run fine-tune; something like:
-      openai api fine_tunes.create -t training_data.jsonl -m davinci --n_epochs 1
-    get model name. something like:
-      davinci:ft-personal-2022-12-27-16-04-13
-    this goes in the "model" arg in make_card() api call
-    """
-    save_deck(make_deck())  
-  
+def main():
+  print(make_card('Creature'))
+
 if __name__ == '__main__':
   main()
+
+
+#save_deck(make_deck())  
