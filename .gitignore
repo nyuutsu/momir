@@ -1,6 +1,7 @@
 Deck_*
-*.json
+cardlist.json
 *.jsonl
- __pycache__/
- */__pycache__/
- *.pyc
+__pycache__/
+*/__pycache__/
+*.pyc
+*.log

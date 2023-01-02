@@ -1,0 +1,37 @@
+{
+  "legacy": {
+    "last_two_months": 39,
+    "last_two_weeks": 34,
+    "major_last_four_months": 188,
+    "live_last_two_months": 72,
+    "all_2022": 237,
+    "all_2021": 219,
+    "all_2020": 199,
+    "all_2019": 182,
+    "all_2018": 164,
+    "all_2017": 143,
+    "all_2016": 117,
+    "all_2015": 100,
+    "all_2014": 81,
+    "all_2013": 80,
+    "all_2012": 6,
+    "all_2011": 61,
+    "all_major": 27,
+    "all": 16
+  },
+  "vintage": {
+    "last_four_months": 71,
+    "last_two_months": 82,
+    "live_last_six_months": 83,
+    "all_2022": 238,
+    "all_2020-2021": 221,
+    "all_2018-2019": 167,
+    "all_2015-2017": 148,
+    "all_2011-2014": 15,
+    "all_major": 40,
+    "all": 14
+  },
+  "cedh": {
+    "all": 240
+  }
+}
