@@ -1,3 +1,6 @@
 Deck_*
-cardlist.json
-training_data.jsonl
+*.json
+*.jsonl
+ __pycache__/
+ */__pycache__/
+ *.pyc

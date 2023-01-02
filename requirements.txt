@@ -1,3 +1,4 @@
-requests
 openai
-Pillow==9.3.0
+Pillow
+requests
+selenium
