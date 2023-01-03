@@ -28,8 +28,8 @@ def scrape_format(args):
 
   if args.deck == 'side':
     logging.info('attempting to access side deck results')
-    md_sb_toggles = driver.find_elements(by=By.NAME, value="maindeck")
-    md_sb_toggles[1].click()
+    main_sideboard_toggles = driver.find_elements(by=By.NAME, value="maindeck")
+    main_sideboard_toggles[1].click()
     submit_form = driver.find_elements(by=By.TAG_NAME, value="input")
     submit_form[4].click()
   
@@ -56,11 +56,16 @@ def log_to_file(data, args):
     file.write(data)
 
 def parse_args():
-  parser=argparse.ArgumentParser(description="a script to scrape mtgtop8 'cards used in a format'")
-  parser.add_argument("--format", type=str, default="legacy", choices=['vintage', 'legacy', 'cedh'])  # maybe: 'modern', 'standard', 'pauper'
-  parser.add_argument("--deck", type=str, default="main", choices=['main', 'side'])  # site doesn't allow 'simulview both'
-  parser.add_argument("--timeframe", type=str, default="all", help="default is 'all'; see format_mappings.json for format-specific options")
-  args=parser.parse_args()
+  parser = argparse.ArgumentParser(description="a script to scrape mtgtop8 'cards used in a format'")
+
+  # maybe: 'modern', 'standard', 'pauper'
+  parser.add_argument("--format", type=str, default="legacy", choices=['vintage', 'legacy', 'cedh'])
+
+  # site doesn't allow 'simulview both'
+  parser.add_argument("--deck", type=str, default="main", choices=['main', 'side'])
+  parser.add_argument("--timeframe", type=str, default="all",
+                      help="default is 'all'; see format_mappings.json for format-specific options")
+  args = parser.parse_args()
   with open(join('config', 'format_mappings.json')) as file:
     test = json.load(file)
   try:
@@ -77,6 +82,7 @@ def main():
   arguments = parse_args()  
   scrape_result = scrape_format(arguments)
   log_to_file(scrape_result, arguments)
+
 
 if __name__ == '__main__':
   main()
