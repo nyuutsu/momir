@@ -44,12 +44,11 @@ def scrape_format(args):
     page_counter = page_counter + 1
     driver.execute_script(f'PageSubmit({page_counter})')
 
-    # "wait until staleness" isn't cooperating:
+    # "wait until staleness" isn't cooperating
     # website is being very slow. script inaccurately terminates early
     # temporary "solution": call next page, sleep long time. give chance to load
-    
-    #WebDriverWait(driver, timeout=10).until(staleness_of(results[0]))
-    sleep(30)
+    #sleep(30)
+    WebDriverWait(driver, timeout=10).until(staleness_of(results[0]))
 
   logging.info('looks like reached end of results')
   return cards
