@@ -1,28 +1,23 @@
 import argparse
 import logging
 from json import load
-from os.path import exists as file_exists
+from os import makedirs
+from os.path import exists as file_exists, join
 from requests import get as rget
 
 def get_scryfall_data() -> None:
   url = 'https://api.scryfall.com/bulk-data'
   reqs = rget(url, timeout=1).json()['data'][0]['download_uri']
-  with open('cardlist.json', 'wb') as file:
+  with open(join('config', 'cardlist.json'), 'wb') as file:
     file.write(rget(reqs).content)
-  
-def check_if_keep(card: dict, filters: list) -> bool:
-  """old approach to curating cardpool (w/ filters.json)"""
-  if 'card_faces' in card:
-    return False
-  return all(card[criteria[0]] != criteria[1] for criteria in filters)
 
 def in_format(card: dict, format: str) -> bool:
   return card['legalities'][format] != 'not_legal'
 
-def remove_unneeded_attributes(cardpool, args):
-  with open('unneeded_attributes.json') as file:
+def remove_unneeded_attributes(cardpool, args) -> None:
+  with open(join('config', 'unneeded_attributes.json')) as file:
     unneeded_attributes = load(file)
-  with open('unneeded_attributes_low.json') as file:
+  with open(join('config', 'unneeded_attributes_low.json')) as file:
     potentially_unneeded_attributes = load(file)
 
   for card in cardpool:
@@ -35,12 +30,14 @@ def remove_unneeded_attributes(cardpool, args):
         if attribute in card:
           del card[attribute]
   
-def generate_training_data(args, filename: str = 'cardlist.json'):
-  with open(filename) as file:
+def generate_training_data(args, filename: str = 'cardlist.json') -> None:
+  with open(join('config', filename)) as file:
     cards = load(file)
 
-  if args.file_filter:
-    with open(args.file_filter) as file:
+  makedirs('./output', exist_ok=True)
+  
+  if args.file_filter:  
+    with open(join('output', args.file_filter)) as file:
       file_filter = file.readlines()
       file_filter = [card.strip() for card in file_filter]
     cardpool = [card for card in cards if card['name'] in file_filter]
@@ -49,7 +46,7 @@ def generate_training_data(args, filename: str = 'cardlist.json'):
 
   remove_unneeded_attributes(cardpool, args)
   
-  with open('training_data.jsonl', 'w') as file:
+  with open(join('output', 'training_data.jsonl'), 'w') as file:
     for card in cardpool:
       card_data = ""
       for attribute, value in card.items():
@@ -71,14 +68,15 @@ def parse_args():
   return args
 
 def main() -> None:
-  logging.basicConfig(filename='scrape.log', encoding='utf-8', level=logging.DEBUG)
+  makedirs('./logs', exist_ok=True)
+  logging.basicConfig(filename=join('logs', 'dataset.log'), encoding='utf-8', level=logging.DEBUG)
 
   arguments = parse_args()  
 
-  if not file_exists('cardlist.json'):
+  if not file_exists(join('config', 'cardlist.json')):
     get_scryfall_data()
 
-  if file_exists('cardlist.json'):
+  if file_exists(join('config', 'cardlist.json')):
     generate_training_data(arguments)
 
 if __name__ == '__main__':

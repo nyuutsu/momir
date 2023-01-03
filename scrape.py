@@ -1,23 +1,24 @@
 import argparse
 import json
 import logging
+from os import makedirs
+from os.path import join
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support.expected_conditions import staleness_of
-from time import sleep
 
 def scrape_format(args):
   logging.info('beginning scrape_format()')
   cards = ""
   page_counter = 1
-  driver = webdriver.Firefox()
+  driver = webdriver.Firefox(service_log_path=join('logs', 'geckodriver.log'))
 
-  with open('format_abbreviations.json') as file:
+  with open(join('config', 'format_abbreviations.json')) as file:
     abbreviations = json.load(file)
   abbreviation = abbreviations[args.format]
 
-  with open('format_mappings.json') as file:
+  with open(join('config', 'format_mappings.json')) as file:
     mappings = json.load(file)
   mapping = mappings[args.format][args.timeframe]
 
@@ -44,17 +45,14 @@ def scrape_format(args):
     page_counter = page_counter + 1
     driver.execute_script(f'PageSubmit({page_counter})')
 
-    # "wait until staleness" isn't cooperating
-    # website is being very slow. script inaccurately terminates early
-    # temporary "solution": call next page, sleep long time. give chance to load
-    #sleep(30)
     WebDriverWait(driver, timeout=10).until(staleness_of(results[0]))
 
   logging.info('looks like reached end of results')
   return cards
 
 def log_to_file(data, args):
-  with open(f'cards_in_{args.format}_{args.deck}board_{args.timeframe}.jsonl', 'w') as file:
+  makedirs('./output', exist_ok=True)
+  with open(join('output', f'cards_in_{args.format}_{args.deck}board_{args.timeframe}.jsonl'), 'w') as file:
     file.write(data)
 
 def parse_args():
@@ -63,7 +61,7 @@ def parse_args():
   parser.add_argument("--deck", type=str, default="main", choices=['main', 'side'])  # site doesn't allow 'simulview both'
   parser.add_argument("--timeframe", type=str, default="all", help="default is 'all'; see format_mappings.json for format-specific options")
   args=parser.parse_args()
-  with open('format_mappings.json') as file:
+  with open(join('config', 'format_mappings.json')) as file:
     test = json.load(file)
   try:
     test[args.format][args.timeframe]
@@ -74,7 +72,8 @@ def parse_args():
   return args
 
 def main():
-  logging.basicConfig(filename='scrape.log', encoding='utf-8', level=logging.DEBUG)
+  makedirs('./logs', exist_ok=True)
+  logging.basicConfig(filename=join('logs', 'scrape.log'), encoding='utf-8', level=logging.DEBUG)
   arguments = parse_args()  
   scrape_result = scrape_format(arguments)
   log_to_file(scrape_result, arguments)
