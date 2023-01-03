@@ -1,11 +1,15 @@
+import argparse
+import logging
 from math import floor
-from time import time
 import openai
+from os import makedirs
+from os.path import join
+from time import time
 
-def make_card(supertype: str) -> dict:
+def make_card(args) -> dict:
   return dict(openai.Completion.create(
-    model="davinci:ft-personal-2022-12-27-16-32-43",
-    prompt=f"{supertype} ->",
+    model=args.model,
+    prompt=f"{args.supertype} ->",
     max_tokens=250,
     temperature=1,
     stop="ꙮ"
@@ -49,8 +53,29 @@ def save_deck(deck: list) -> None:
     for card in deck:      
       file.write(f'{card}\n')
 
+def parse_args():
+  parser = argparse.ArgumentParser(description="a script to generate cards and decks'")
+
+  parser.add_argument("--model", type=str, help='see readme')
+  #parser.add_argument("--mode", type=str, default="card", choices=['card', 'deck'])
+  parser.add_argument("--supertype", type=str, default="creature", choices=['creature', 'instant', 'sorcery', 'land', 'enchantment', 'artifact', 'planeswalker', 'tribal'])
+  #parser.add_argument("--cmc", type=int, default="2")
+  #parser.add_argument("--color", type=str, default="W") # ['W']?
+  #parser.add_argument("--deck_template", type=str, default="default")
+  #parser.add_argument("--output", type=str, default="print", choices=['print', 'save'])
+  parser.add_argument("--quantity", type=int, default="1")
+  args = parser.parse_args()
+  logging.debug(args)
+  logging.info('arguments seem parsed')
+  return args
+
 def main():
-  print(make_card('Creature'))
+  makedirs('./logs', exist_ok=True)
+  logging.basicConfig(filename=join('logs', 'scrape.log'), encoding='utf-8', level=logging.DEBUG)
+  arguments = parse_args()
+  for _ in range(arguments.quantity):
+    card = make_card(arguments)
+    print(card)
 
 if __name__ == '__main__':
   main()

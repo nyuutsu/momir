@@ -1,71 +1,163 @@
-tools for ai-generated mtg card tasks
+## tools for ai-generated mtg card tasks
 
-eventually, a workflow for generating cockatrice-playable ai-generated decks
+(eventually, a workflow for generating cockatrice-playable ai-generated decks)
+
+### tl;dr instructions:
+
+0. run `pip install -r requirements.txt`
+
+1. run `python scrape.py`
+  should scrape data and store in `/output`
+
+2. run `python dataset.py`
+  should process data to create a training dataset and store as `/output/trainingdata.jsonl`
+
+3. run `openai api fine_tunes.create -t output/training_data.jsonl -m davinci --n_epochs 1`
+  when this works it will output a "model name"; copy this.
+
+4. run `python maker.py --model "YOURMODELNAMEHERE" --supertype "creature"`
+  should generate a creature and print it
+  *most of the features aren't done. it will make single cards though!*
+
+~~5. something involving pictures.py~~ ***coming soon***
+
+---
+### elaboration
+
+#### `scrape.py`
 
 `scrape.py` prepares an optional filter to be used by `dataset.py`
 
-it scrapes mtgtop8's "top cards [in format]" page for a list of all cards that have been used in a format and timespan
+It scrapes mtgtop8's "top cards [in format]" page for a list of all cards that have been used in a format and timespan. By default it looks for "all used in legacy over past two weeks". This behavior can be modified with flags.
 
-by default it looks for "all cards ever used in legacy". this can be modified with flags. example use:
+It creates a .jsonl file in `output`; name will vary based on options used. The default options result in a file named `cards_in_legacy_mainboard_last_two_weeks.jsonl`
 
-`chmod +x scrape.py`
+flags: `--deck`, `--format`, `--timeframe`
 
-`./scrape.py --timeframe 'last_two_weeks'`
+##### `--deck`:
+Default: `main`
+Site has separate lists/search results for "mainboard" vs "sideboard"
+Script default behavior is to scrape mainboard
+If want *both*: for now must run twice and maybe combine results from there
+This will be improved in a later version.
 
-`./scrape.py --help` gives some information on this. more can be found by looking at the valid date periods for each format in `format_mappings.json`. there are a lot of them and many of them are exclusive to one format.
+###### *options*
 
-`dataset.py` prepares training data:
+* `main` maindeck results
+* `side` sideboard results
 
-1. download all card data from scryfall
+##### `--format`:
+Default: `legacy`
+Site has data on several formats. you can pick which one to scrape from. Each format has a different slate of supported timeframes.
 
-2. use filter rules to exclude portions of the cardpool
+###### *options*
+* `legacy`
+* `vintage`
+* `modern`
+* `pauper`
+  
+##### `--timeframe`:
+Default: `all`
+Formats have different available timeframes. `timeframe`, if given, must be compatible with the `format`. Compatability listed below:
 
-~~the default filter, `filters.json`, should filter for "vintage-legal single-faced card"~~ deprecated
+###### *options*
 
-the default filter should find everything in legacy and exclude everything else. to override this with a different format: `--format_filter FORMAT`
+| legacy | vintage |  modern | pauper
+| - | - | - | - 
+| last_two_weeks | last_two_months | last_two_weeks | last_two_months |
+| last_two_months | last_four_months | last_two_months | last_four_months |
+| last_two_months | live_last_six_months | major_last_two_months | live_last_three_months |
+| last_two_weeks | all_2022 | live_last_two_months | all_2022 |
+| major_last_four_months | all_2020-2021 | all_2022 | all_2021 |
+| live_last_two_months | all_2018-2019 | all_2021 | all_2020 |
+| all_2022 | all_2015-2017 | all_2020 | all_2019 |
+| all_2021 | all_2011-2014 | all_2019 | all_2018 |
+| all_2020 | all_major | all_2018 | all_2017 |
+| all_2019 | all | all_2017 | all_2016 |
+| all_2018 |  | all_2016 | all |
+| all_2017 |  | all_2015 |  |
+| all_2016 |  | all_2014 |  |
+| all_2015 |  | all_2013 |  |
+| all_2014 |  | all_2012 |  |
+| all_2013 |  | all_2011 |  |
+| all_2012 |  | all |  |
+| all_2011 |  | all_pt_and_gp |  |
+| all_major |  |  |  |
+| all |  |  |  |
+---
+#### `dataset.py`
 
-it is also possible to use a result from `scrape.py` as the filter. to do this, use flag `--file_filter FILENAME`.
+`dataset.py` prepares a training dataset to be used for training an ML model to create cards based on that dataset. It begins by downloading a blob of "all data about all cards" and then curating out unwanted parts.
 
-handling for + inclusion of double-faced cards to be added later
+By default, it assumes you ran `scrape.py` with no flags and so have created `output/cards_in_legacy_mainboard_all.jsonl` for it to use as an input.
+If you have not or won't do this, read on for other options. It creates or overwrites the file `trainingdata.jsonl` in `output`.
 
-3. use pruning rules in `unneeded attributes.json` to remove data not needed for completions
+flags: `--file_filter`, `--format_filter`, `--granularity`
 
-4. write result to `training_data.jsonl` formatted as prompts to create a card of a given main type
+##### `--file_filter`:
+Default: `cards_in_legacy_mainboard_all.jsonl`
+Dataset curation method is to use a card-name whitelist. The default whitelist is "cards ever used in a winning legacy mainboard". Whitelist file should be a newline-separated, case-sensitive list of card names. Cards on whitelist are converted into prompts; cards not on list are excluded. Intended for use with `scrape.py` outputs, but would work for a user-authored file.
 
-example use:
+###### *options*:
 
-`chmod +x dataset.py`
+`relative/path/to/file.jsonl` e.g. `output/cards_in_legacy_mainboard_last_two_weeks.jsonl`
 
-`python dataset.py --file_filter "cards_in_legacy_mainboard_all.jsonl"`
+##### `--format_filter`:
+Default: none
+Overrides dataset curation method to instead include based on legality in a format. Cards in format are converted into prompts; cards not in format are excluded. Will in most cases result in *very large* training sets. The `oldschool` option would probably make for a cool model.
 
-this will create `training_data.jsonl`. its intended use is to feed to openai for fine-tuning one of their models w/ could be done like so:
+###### *options*
 
-```openai api fine_tunes.create -t training_data.jsonl -m davinci --n_epochs 1```
+| Eternal | Singleton | Nonrotating | Rotating | Retro |
+| - | - | - | - | - 
+| vintage | commander | modern | standard | oldschool |
+| legacy | brawl | pioneer | future | premodern |
+| pauper | historicbrawl | explorer | alchemy
+| commander | duel | historic | penny
+|  | gladiator |
 
-*if the above command doesn't work: check oa package installed + python in path + api key in path + you in right cwd*
+##### `--granularity`:
+Default: `low`
+Making a card consists of giving the trained model a "prompt" and getting a result. A wide prompt will have more variety per prompt and be slightly easier to use. A narrow prompt will probably be more useful for autogenerating decklists. The dataset can be of wide or narrow prompts. Wide prompts are just a card's main supertype. Narrow prompts are also a color and a converted mana cost. Both modes should be compatible with using `--file_filter` or `--format_filter`.
 
-running the above command should return a model name. default names currently look something like this:
+###### *options*
 
-`davinci:ft-personal-2022-12-27-16-04-13`
+* `low`: training data prompts will be wide, like this: `{"prompt":"Instant ->","completion":" name: Brainstorm\nmana_cost: {U}\ntype_line: Instant\noracle_text: Draw three cards, then put two cards from your hand on top of your library in any order.\nꙮ"}`
+* `high`: training data prompts will be narrow, like this: `{"prompt":"CMC 1 ['U'] Instant ->","completion":" name: Brainstorm\nmana_cost: {U}\ntype_line: Instant\noracle_text: Draw three cards, then put two cards from your hand on top of your library in any order.\nꙮ"}`
+---
+#### `maker.py`
 
-*this model game is used in the "model" field in the api call in `maker.py`'s `make_card()`*
+`maker.py` generates magic cards. It needs you to have already trained a model using a dataset (such as one produced by `dataset.py`). Its default behavior is "generate one creature and print it to the console". Soon, this behavior can be modified with flags.
 
-`maker.py`
+flags: `--tbd`, `--alsotbd`
 
-makes cards using the model
+##### `--flag`:
+Default: tbd
+tbd
 
-right now has two uses:
+###### *options*:
+* `tbd`
+---
+#### `pictures.py`
 
-1. make a single card of a given [main] [super] type
+`pictures.py` is incomplete. Don't use this for now.
 
-  e.g. make_card('Creature') -> returns `name: Ryans Remembrance\nmana_cost: {2}\n`...[etc]
+flags: `--tbd`, `--alsotbd`
 
-2. make a decklist of 60 cards, of which most or all are ai-generated
+##### `--tbd`:
+tbd
 
-  this writes the result to disk in a file w/ quantities
+###### *options*:
+* `tbd`
+---
 
-  right now, deckbuilder traits are hardcoded. e.g. all decks have creaturebase of "playsets of three creatures", all decks have some rainbowlands for fixing, etc. this will be improved to allow prompting for a specific color combination, curve, and type breakdown
+### Troubleshooting:
 
-`pictures.py`
+Check that:
+* required packages are installed
+* python is in PATH
+* openai API key is in PATH
+* openai account has funding
+* you are in the right directory (`momir/`)
 
-experiment re: drawing text on card frames. eventally will be part of a tool for automating making cockatrice-playable versions of generated cards
+It's entirely possible that I've missed something. Bug/error reports enthusiastically welcome.

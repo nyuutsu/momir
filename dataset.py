@@ -4,7 +4,6 @@ from json import load
 from os import makedirs
 from os.path import exists as file_exists, join
 from typing import List
-
 from requests import get as rget
 
 def get_scryfall_data() -> None:
@@ -14,6 +13,8 @@ def get_scryfall_data() -> None:
     file.write(rget(reqs).content)
 
 def in_format(card: dict, card_format: str) -> bool:
+  if card['layout'] == 'transform':
+    return False
   return card['legalities'][card_format] != 'not_legal'
 
 def remove_unneeded_attributes(cardpool: List[dict], args) -> None:
@@ -33,22 +34,23 @@ def remove_unneeded_attributes(cardpool: List[dict], args) -> None:
           del card[attribute]
   
 def generate_training_data(args, filename: str = 'cardlist.json') -> None:
-  with open(join('config', filename)) as file:
+  with open(join('config', filename), encoding="utf8") as file:
     cards = load(file)
 
   makedirs('./output', exist_ok=True)
   
-  if args.file_filter:  
+  if args.format_filter:
+    cardpool = [card for card in cards if in_format(card, args.format_filter) and card['layout'] != 'transform' and '//' not in card['name']]
+
+  elif args.file_filter:  
     with open(join('output', args.file_filter)) as file:
       file_filter = file.readlines()
       file_filter = [card.strip() for card in file_filter]
-    cardpool = [card for card in cards if card['name'] in file_filter]
-  elif args.format_filter:
-    cardpool = [card for card in cards if in_format(card, args.format_filter)]
+    cardpool = [card for card in cards if card['name'] in file_filter and card['layout'] != 'transform' and '//' not in card['name']]
 
   remove_unneeded_attributes(cardpool, args)
   
-  with open(join('output', 'training_data.jsonl'), 'w') as file:
+  with open(join('output', 'training_data.jsonl'), 'w', encoding="utf8") as file:
     for card in cardpool:
       card_data = ""
       for attribute, value in card.items():
@@ -65,11 +67,12 @@ def generate_training_data(args, filename: str = 'cardlist.json') -> None:
 def parse_args():
   parser = argparse.ArgumentParser(
     description="a script to prepare a dataset for training. only one filter flag is considered.")
-  parser.add_argument("--file_filter", type=str, help='provide a filename for filter')
-  parser.add_argument("--format_filter", type=str, default="legacy")
+  parser.add_argument("--file_filter", type=str, help='provide a filename for filter', default='cards_in_legacy_mainboard_all.jsonl')
+  parser.add_argument("--format_filter", type=str)
   parser.add_argument("--granularity", type=str, choices=['high', 'low'], default='low',
                       help='set to high if you want to specify color and cmc')
   args = parser.parse_args()
+  print(args)
   return args
 
 def main() -> None:
@@ -83,7 +86,6 @@ def main() -> None:
 
   if file_exists(join('config', 'cardlist.json')):
     generate_training_data(arguments)
-
 
 if __name__ == '__main__':
   main()

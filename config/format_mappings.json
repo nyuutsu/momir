@@ -31,7 +31,37 @@
     "all_major": 40,
     "all": 14
   },
-  "cedh": {
-    "all": 240
-  }
+  "modern": {
+    "last_two_months": 51,
+    "last_two_weeks": 54,
+    "major_last_two_months": 18,
+    "live_last_two_months": 57,
+    "all_2022": 23,
+    "all_2021": 22,
+    "all_2020": 20,
+    "all_2019": 18,
+    "all_2018": 16,
+    "all_2017": 14,
+    "all_2016": 11,
+    "all_2015": 10,
+    "all_2014": 79,
+    "all_2013": 77,
+    "all_2012": 76,
+    "all_2011": 78,
+    "all": 44,
+    "all_pt_and_gp": 92
+  },
+  "pauper": {
+    "last_two_months": 145,
+    "last_four_months": 127,
+    "live_last_three_months": 185,
+    "all_2022": 239,
+    "all_2021": 224,
+    "all_2020": 223,
+    "all_2019": 186,
+    "all_2018": 170,
+    "all_2017": 169,
+    "all_2016": 168,
+    "all":110
+  }  
 }

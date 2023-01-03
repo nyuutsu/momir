@@ -13,6 +13,7 @@ def scrape_format(args):
   cards = ""
   page_counter = 1
   driver = webdriver.Firefox(service_log_path=join('logs', 'geckodriver.log'))
+  driver.implicitly_wait(10)
 
   with open(join('config', 'format_abbreviations.json')) as file:
     abbreviations = json.load(file)
@@ -48,6 +49,7 @@ def scrape_format(args):
     WebDriverWait(driver, timeout=10).until(staleness_of(results[0]))
 
   logging.info('looks like reached end of results')
+  driver.quit()
   return cards
 
 def log_to_file(data, args):
@@ -58,20 +60,19 @@ def log_to_file(data, args):
 def parse_args():
   parser = argparse.ArgumentParser(description="a script to scrape mtgtop8 'cards used in a format'")
 
-  # maybe: 'modern', 'standard', 'pauper'
-  parser.add_argument("--format", type=str, default="legacy", choices=['vintage', 'legacy', 'cedh'])
+  parser.add_argument("--format", type=str, default="legacy", choices=['vintage', 'legacy', 'modern', 'pauper'])
 
-  # site doesn't allow 'simulview both'
+  # site doesn't allow 'both'
   parser.add_argument("--deck", type=str, default="main", choices=['main', 'side'])
   parser.add_argument("--timeframe", type=str, default="all",
-                      help="default is 'all'; see format_mappings.json for format-specific options")
+                      help="default is 'last_two_weeks'; see readme for more options")
   args = parser.parse_args()
   with open(join('config', 'format_mappings.json')) as file:
     test = json.load(file)
   try:
     test[args.format][args.timeframe]
   except KeyError:
-    logging.critical('invalid timeframe for format; see format_mappings.json for format-specific options')
+    logging.critical('invalid timeframe for format; see readme.md for format-specific options')
     exit()
   logging.info('arguments seem parsed')
   return args
@@ -79,7 +80,7 @@ def parse_args():
 def main():
   makedirs('./logs', exist_ok=True)
   logging.basicConfig(filename=join('logs', 'scrape.log'), encoding='utf-8', level=logging.DEBUG)
-  arguments = parse_args()  
+  arguments = parse_args()
   scrape_result = scrape_format(arguments)
   log_to_file(scrape_result, arguments)
 
