@@ -8,7 +8,8 @@ from time import time
 import openai
 import requests
 
-def make_card(args: Namespace) -> dict:
+def make_card(args: Namespace) -> str:
+  # TODO(nyuu): Add temperature flag to argparse
   return dict(openai.Completion.create(
     model=args.model,
     prompt=f"{args.supertype} ->",
@@ -18,13 +19,15 @@ def make_card(args: Namespace) -> dict:
     stop="ꙮ"
   ))['choices'][0]['text']
 
-def make_unique_card(args: Namespace) -> dict:
+def make_unique_card(args: Namespace) -> str:
   """rejection sampling wrapper for make_card
   TODO: add "scryfall is down" & "too many failures" exit conditions"""
   fail_count = 0
   while True:
     card = make_card(args)
     card_name = card.split('\n')[:1][0].split(':')[1].strip()
+
+    # TODO(nyuu): change petition to response for clarity here
     petition = requests.get(f'https://api.scryfall.com/cards/named?pretty=true&exact={card_name}').json()
     if petition['object'] == 'error':
       logging.info(f'ok: {card_name}. returning')
@@ -32,12 +35,12 @@ def make_unique_card(args: Namespace) -> dict:
     fail_count += 1
     logging.info(f'collision: {card_name}. collisions: {fail_count}. retrying')
 
-def save_card(card: str, timestamp: str) -> None:
+def save_card(card: str, timestamp: int) -> None:
   with open(join('output', f'Cards_{timestamp}.txt'), 'a', encoding='utf-8') as file:
     file.write(card)
   pass
 
-def output_card(card: str, arguments: Namespace, timestamp: str) -> None:
+def output_card(card: str, arguments: Namespace, timestamp: int) -> None:
   if arguments.output == 'save':
     save_card(card, timestamp)
   else:
@@ -48,7 +51,10 @@ def parse_args() -> Namespace:
   parser = ArgumentParser(description="a script to generate cards")
 
   parser.add_argument("--model", type=str, help='see readme')
-  parser.add_argument("--supertype", type=str, default="creature", choices=['creature', 'instant', 'sorcery', 'land', 'enchantment', 'artifact', 'planeswalker', 'tribal'])
+  parser.add_argument("--supertype", type=str, default="creature",
+                      choices=['creature', 'instant', 'sorcery', 'land', 'enchantment',
+                               'artifact', 'planeswalker', 'tribal'])
+  # TODO(nyuu): make flag accept a filename, if no filename then print to console
   parser.add_argument("--output", type=str, default="print", choices=['print', 'save'])
   parser.add_argument("--quantity", type=int, default="1")
   
@@ -68,6 +74,7 @@ def main() -> None:
     card = make_unique_card(arguments)
     output_card(card, arguments, timestamp)
   logging.info('ending run')
+
 
 if __name__ == '__main__':
   main()

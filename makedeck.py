@@ -10,7 +10,7 @@ from makecard import make_unique_card
 
 def make_deck(args: Namespace) -> list:
   deck = []
-  with open(join('config', args.deck_template)) as file:
+  with open(args.deck_template) as file:
     template = load(file)
   for supertype_key, supertype_value in enumerate(template['generated']):
     for _ in range(supertype_value['uniques']):
@@ -30,7 +30,7 @@ def save_deck(deck: list) -> None:
 
 def output_deck(deck: list, arguments: Namespace) -> None:
   if arguments.output == 'save':
-    save_deck(list)
+    save_deck(deck)
   else:
     logging.info(f'mode: console output:\n{deck}')
     print(deck)
@@ -59,6 +59,7 @@ def main() -> None:
     deck = make_deck(arguments)
     output_deck(deck, arguments)
   logging.info('ding!')
+
 
 if __name__ == '__main__':
   main()
