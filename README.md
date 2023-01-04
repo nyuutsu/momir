@@ -12,12 +12,12 @@
 2. run `python dataset.py`
   should process data to create a training dataset and store as `/output/trainingdata.jsonl`
 
-3. run `openai api fine_tunes.create -t output/training_data.jsonl -m davinci --n_epochs 1`
+3. run `openai api fine_tunes.create -t output/training_data.jsonl -m davinci --n_epochs 1 --learning_rate_multiplier 0.02`
   when this works it will output a "model name"; copy this.
 
-4. run `python maker.py --model "YOURMODELNAMEHERE" --supertype "creature"`
-  should generate a creature and print it
-  *most of the features aren't done. it will make single cards though!*
+4. run `python maker.py --model "YOURMODELNAMEHERE" --quantity 10`
+  should generate 10 creatures and print them
+  *most of the features aren't done*
 
 ~~5. something involving pictures.py~~ ***coming soon***
 
