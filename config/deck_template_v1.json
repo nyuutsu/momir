@@ -1,0 +1,37 @@
+{
+  "generated": {
+    "Creature": {
+      "uniques": 3,
+      "copies": 4
+    },
+    "Sorcery": {
+      "uniques": 2,
+      "copies": 4
+    },
+    "Instant": {
+      "uniques": 2,
+      "copies": 4
+    },
+    "Artifact": {
+      "uniques": 1,
+      "copies": 2
+    },
+    "Enchantment": {
+      "uniques": 1,
+      "copies": 2
+    },
+    "Planeswalker": {
+      "uniques": 1,
+      "copies": 2
+    },
+    "Land": {
+      "uniques": 4,
+      "copies": 4
+    }
+  },
+  "static": {
+    "Mana Confluence": "quantity 4\nname: Mana Confluence\nmana_cost: \ntype_line: Land\noracle_text: {T}, Pay 1 life: Add one mana of any color.\n",
+    "City of Brass": "quantity 4\nname: City of Brass\nmana_cost: \ntype_line: Land\noracle_text: Whenever City of Brass becomes tapped, it deals 1 damage to you.\n{T}: Add one mana of any color.\n",
+    "Gemstone Mine": "quantity 2\nname: Gemstone Mine\nmana_cost: \ntype_line: Land\noracle_text: Gemstone Mine enters the battlefield with three mining counters on it.\n{T}, Remove a mining counter from Gemstone Mine: Add one mana of any color. If there are no mining counters on Gemstone Mine, sacrifice it.\n"
+  }
+}
