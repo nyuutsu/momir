@@ -5,6 +5,7 @@ from os import makedirs
 from os.path import join
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support.expected_conditions import staleness_of
 
@@ -12,7 +13,11 @@ def scrape_format(args):
   logging.info('beginning scrape_format()')
   cards = ""
   page_counter = 1
-  driver = webdriver.Firefox(service_log_path=join('logs', 'geckodriver.log'))
+  firefox_options = Options()
+  if args.headless == 'true':
+    firefox_options.add_argument("--headless")
+  driver = webdriver.Firefox(service_log_path=join('logs', 'geckodriver.log'), options=firefox_options)
+  
   driver.implicitly_wait(10)
 
   with open(join('config', 'format_abbreviations.json')) as file:
@@ -46,7 +51,7 @@ def scrape_format(args):
     page_counter = page_counter + 1
     driver.execute_script(f'PageSubmit({page_counter})')
 
-    WebDriverWait(driver, timeout=10).until(staleness_of(results[0]))
+    WebDriverWait(driver, timeout=60).until(staleness_of(results[0]))
 
   logging.info('looks like reached end of results')
   driver.quit()
@@ -66,6 +71,7 @@ def parse_args():
   parser.add_argument("--deck", type=str, default="main", choices=['main', 'side'])
   parser.add_argument("--timeframe", type=str, default="all",
                       help="default is 'last_two_weeks'; see readme for more options")
+  parser.add_argument("--headless", type=str, default="false", choices=['false', 'true'])
   args = parser.parse_args()
   with open(join('config', 'format_mappings.json')) as file:
     test = json.load(file)
