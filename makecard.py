@@ -1,20 +1,18 @@
 from argparse import ArgumentParser, Namespace
 import logging
-from math import floor
 from os import makedirs
 from os.path import join
-from time import time
-
+import signal
+import sys
 import openai
 import requests
 
 def make_card(args: Namespace) -> str:
-  # TODO(nyuu): Add temperature flag to argparse
   return dict(openai.Completion.create(
     model=args.model,
     prompt=f"{args.supertype} ->",
     max_tokens=250,
-    temperature=1,
+    temperature=args.temperature,
     best_of=1,
     stop="ꙮ"
   ))['choices'][0]['text']
@@ -25,24 +23,24 @@ def make_unique_card(args: Namespace) -> str:
   fail_count = 0
   while True:
     card = make_card(args)
+    logging.info(f'card returned: {card}')
     card_name = card.split('\n')[:1][0].split(':')[1].strip()
 
-    # TODO(nyuu): change petition to response for clarity here
-    petition = requests.get(f'https://api.scryfall.com/cards/named?pretty=true&exact={card_name}').json()
-    if petition['object'] == 'error':
+    response = requests.get(f'https://api.scryfall.com/cards/named?pretty=true&exact={card_name}').json()
+    if response['object'] == 'error':
       logging.info(f'ok: {card_name}. returning')
       return card
     fail_count += 1
     logging.info(f'collision: {card_name}. collisions: {fail_count}. retrying')
 
-def save_card(card: str, timestamp: int) -> None:
-  with open(join('output', f'Cards_{timestamp}.txt'), 'a', encoding='utf-8') as file:
+def save_card(card: str, filename: str) -> None:
+  with open(join('output', filename), 'a', encoding='utf-8') as file:
     file.write(card)
   pass
 
-def output_card(card: str, arguments: Namespace, timestamp: int) -> None:
-  if arguments.output == 'save':
-    save_card(card, timestamp)
+def output_card(card: str, arguments: Namespace) -> None:
+  if arguments.filename:
+    save_card(card, arguments.filename)
   else:
     logging.info(f'mode: console output:\n{card}')
     print(card)
@@ -54,8 +52,8 @@ def parse_args() -> Namespace:
   parser.add_argument("--supertype", type=str, default="creature",
                       choices=['creature', 'instant', 'sorcery', 'land', 'enchantment',
                                'artifact', 'planeswalker', 'tribal'])
-  # TODO(nyuu): make flag accept a filename, if no filename then print to console
-  parser.add_argument("--output", type=str, default="print", choices=['print', 'save'])
+  parser.add_argument("--temperature", type=float, default=1.0)
+  parser.add_argument("--filename", type=str, help='this file will be created or appended to in /output')
   parser.add_argument("--quantity", type=int, default="1")
   
   args = parser.parse_args()
@@ -68,11 +66,11 @@ def main() -> None:
   makedirs('./logs', exist_ok=True)
   logging.basicConfig(filename=join('logs', 'makecard.log'), encoding='utf-8', level=logging.DEBUG)
   arguments = parse_args()
+  signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
   logging.info('beginning run')
-  timestamp = floor(time())
   for _ in range(arguments.quantity):
     card = make_unique_card(arguments)
-    output_card(card, arguments, timestamp)
+    output_card(card, arguments)
   logging.info('ending run')
 
 

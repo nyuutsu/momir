@@ -2,31 +2,53 @@
 
 (eventually, a workflow for generating cockatrice-playable ai-generated decks)
 
+basic idea:
+
+1. AI-generated cards might benefit from being trained on only an interesting subset of the cardpool rather than on the whole thing.
+
+2. One "interesting subset" of the cardpool is "stuff that has been used in legacy"
+
+3. Running the scripts in order w/o additional flags prepares training data of an "interesting subset". By default: stuff ever used in a winning legacy maindeck. This is done by getting a list of all-card-and-all-card-data, scraping a whitelist of card names, using that whitelist to exclude the irrelevant 90%ish of the cardpool, and conforming the relevant part of the remaining info into completions.
+
+  * There are also flags available for scraping different and/or smaller segments of the cardpool, and even for doing no scraping & instead using simple format legality as the filter.
+
+4. This can be used to fine-tune a model and have it make cards for you.
+
 ### tl;dr instructions:
 
-0. run `pip install -r requirements.txt`
+0. preliminary:
+    
+    i. install dependencies / requirements
 
-    * make an [openai account](https://openai.com/api/pricing/) and get an api key
-    * store the key in your PATH
-      * windows, cmd/powershell:
-        * run `setx OPENAI_API_KEY "YOURKEYHERE"`
-        * close + reopen window
-      * unixlike: 
-        * run `echo "export OPENAI_API_KEY='YOURKEYHERE'" >> ~/.zshrc`
-          * (or `… >> ~/.bashrc` or similar if applicable)
-        * run `source ~/.zshrc`
-          * (or `… >> ~/.bashrc` or similar if applicable)
+      * run `pip install -r requirements.txt`
+
+      * install firefox
+
+    ii. make an [openai account](https://openai.com/api/pricing/), create an api key, and store the key in your PATH as OPENAI_API_KEY.
+    
+    how to store the key:
+    * windows, powershell (maybe cmd works too?):
+      * run `setx OPENAI_API_KEY "YOURKEYHERE"`
+      * close + reopen window
+    * unixlike: 
+      * run `echo "export OPENAI_API_KEY='YOURKEYHERE'" >> ~/.zshrc`
+        * (or `… >> ~/.bashrc` or similar if applicable)
+      * run `source ~/.zshrc`
+        * (or `… >> ~/.bashrc` or similar if applicable)
 
 1. run `python scrape.py`
-  should scrape data and store in `/output`
 
-1. run `python dataset.py`
-  should process data to create a training dataset and store as `/output/trainingdata.jsonl`
+    if mtgtop8 is cooperative, this will scrape its data and store in `/output`
 
-1. run `openai api fine_tunes.create -t output/training_data.jsonl -m davinci --n_epochs 1 --learning_rate_multiplier 0.02`
-  when this works it will output a "model name"; copy this.
+2. run `python dataset.py`
 
-1. run a `make….py` command:
+    will process scrape data to create a training dataset and store as `/output/trainingdata.jsonl`
+
+3. run `openai api fine_tunes.create -t output/training_data.jsonl -m davinci --n_epochs 1 --learning_rate_multiplier 0.02`
+
+    this will output a "model name"; copy this & paste it into "YOURMODELNAMEHERE" in the `make….py` command in the next step.
+
+4. run a `make….py` command:
   
     * `python makecard.py --model "YOURMODELNAMEHERE" --quantity 10`
   generate 10 creatures and print them
@@ -37,11 +59,80 @@
     * ~~`python makeset.py --model "YOURMODELHERE"`
   generate one 350-card set and save it to `output/Set_TIMESTAMP.txt`~~ ***coming soon***
 
-~~5. pictures.py card image generation~~ ***coming soon***
+5. ~~pictures.py card image generation~~ ***coming soon***
 
-~~6. cockatrice.py cockatrice data generation~~ ***coming soon***
+6. ~~cockatrice.py cockatrice data generation~~ ***coming soon***
 
 ---
+
+### examples:
+
+```sh
+python makecard.py --model "YOURMODELNAMEHERE" --supertype 'creature' --temperature 0.9
+```
+```
+ name: Amoeboid Phytohydra
+mana_cost: {W}{U}
+type_line: Creature — Plant Hydra
+oracle_text: Morph—Reveal a green card in your hand, then discard a green card. (You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.)
+When Amoeboid Phytohydra is turned face up, put a +1/+1 counter on each green creature you control.
+Power of Phytohydra 1 (Whenever you cast a spell, you may put a +1/+1 counter on Phytohydra.)
+color_indicator:1
+power: 1
+toughness: 2
+```
+⬆ this is great
+```sh
+python makecard.py --model "YOURMODELNAMEHERE" --supertype 'sorcery' --temperature 0.9
+```
+```
+ name: Land Aid 'R' Us
+mana_cost: {G}
+type_line: Sorcery
+oracle_text: Search your library for a land card, put it onto the battlefield, then shuffle.
+enters_the_battlefield_tapped: Land
+type: sorcery
+```
+⬆ name is delightful. way too strong.
+```sh
+python makecard.py --model "YOURMODELNAMEHERE" --supertype 'instant'
+```
+```
+ name: Scornful Stroke
+mana_cost: {U}{U}
+type_line: Instant
+oracle_text: Counter target spell you don't control.
+Cycling {U}{U} ({U}{U}, Discard this card: Draw a card.)
+When you cycle Scornful Stroke, counter target spell you don't control.
+```
+⬆ this is the greatest counterspell of all time. way too strong.
+```sh
+python makecard.py --model "YOURMODELNAMEHERE" --supertype 'instant' --temperature 0.9
+```
+```
+ name: What the?!
+mana_cost: {2}{B}
+type_line: Instant
+oracle_text: Name a card. Target opponent reveals their hand, then discards all cards with the chosen name.
+```
+⬆ this seems pretty reasonable to me
+
+```sh
+python makecard.py --model "YOURMODELNAMEHERE" --supertype 'creature' 
+```
+```
+ name: Soul of Shauku, Endbringer
+mana_cost: {X}{X}
+type_line: Creature — Dragon Skeleton
+oracle_text: Flying
+When Soul of Shauku, Endbringer enters the battlefield, you determine the target of its ability. You may choose yourself or an opponent, or target any creature or planeswalker. If a planeswalker enters the battlefield under that planeswalker's controller's control in this way and wasn't already on the battlefield, it's considered a new planeswalker and had no power, toughness, or loyalty: put it into its owner's graveyard. If you don't, exile target creature.
+power: 0
+toughness: 0
+```
+⬆ sometimes the output is sort of bad. sometimes a bad output is funny. this is a lot of words for what amounts to "0: exile target creature" 😂
+
+---
+
 ### elaboration
 
 #### `scrape.py`
@@ -142,7 +233,7 @@ Dataset curation method is to use a card-name whitelist. The default whitelist i
 
 ##### `--format_filter`:
 
-Default: none
+Default: None
 
 Overrides dataset curation method to instead include based on legality in a format. Cards in format are converted into prompts; cards not in format are excluded. Will in most cases result in *very large* training sets. The `oldschool` option would probably make for a cool model.
 
@@ -175,7 +266,7 @@ Making a card consists of giving the trained model a "prompt" and getting a resu
 
 A properly structured request looks something like this: `python makecard.py --model "PASTEYOURMODELNAMEHERE"`
 
-flags: `--model`, `--supertype`, `--output`, `--quantity`
+flags: `--model`, `--supertype`, `--temperature`, `--filename`, `--quantity`
 
 ##### `--model`:
 
@@ -214,16 +305,17 @@ Hypothetically possible:
 * `Scheme`
 * `Vanguard`
 
-##### `--output`:
+##### `--temperature`:
 
-Default: `print`
+Default: `1`
 
-Script can output to console or to file. Filename will be based on a timestamp like so: `output/Cards_TIMESTAMPGOESHERE.txt`
+Enter a temperature value to modify how 'surprising' the outputs are. Current implenetation asks model for a result and then throws it out and retries if there is a name collision with an official card. Lowering the temperature too much will increase the rate of collisions such that it will take a very long time to get outputs. Probably don't set this lower than about 0.9.
 
-###### *options*:
+##### `--filename`:
 
-* `print`
-* `save`
+Default: None
+
+Script can output to console or to file. If a filename is offered that file will be created or appended to in `/output`. If not, results printed to console.
 
 ##### `--quantity`:
 
@@ -266,11 +358,13 @@ Default: `1`
 
 Enter a number to generate that many decks
 
-#### `makeset.py`
+#### ~~`makeset.py`~~ ***coming soon***
 
-`makeset.py` uses a template to generate card sets. A template specifies how many cards of each type to make. The default template specifies 350 cards of various types.
+`makeset.py` is in the earliest stages of trying stuff out. Don't use this yet.
 
-In the future it will be possible to use a 'high granularity' model with a 'high granularity' template to make very specific set compositions. This might get its own flag.
+What this is *going* to do is generate card sets using a template. A template specifies how many cards of each type to make.
+
+It will be possible to use a 'high granularity' model with a 'high granularity' template to make very specific set compositions.
 
 flags: `--model`, `--set_template`, `--output`, `--quantity`
 
@@ -303,9 +397,9 @@ Default: `1`
 
 Enter a number to generate that many sets
 
-#### `pictures.py`
+#### ~~`pictures.py`~~ ***coming soon***
 
-`pictures.py` is incomplete. Don't use this for now.
+`pictures.py` is in the earliest stages of just trying stuff out. Don't use this yet.
 
 flags: `--tbd`, `--alsotbd`
 
@@ -321,8 +415,11 @@ tbd
 Check that:
 * required packages are installed
 * python is in PATH
+* you are in the right directory (`momir/`)
+* firefox installed
+* mtgtop8 isn't rate-limiting you into oblivion
 * openai API key is in PATH
 * openai account has funding
-* you are in the right directory (`momir/`)
+  * at time of writing, new openai accounts get $12 of credits & the default output of scrape.py costs ~$8.50 to train
 
-It's entirely possible that I've missed something. Bug/error reports enthusiastically welcome.
+Bug/error reports enthusiastically welcome.
