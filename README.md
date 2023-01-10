@@ -1,69 +1,8 @@
-## tools for ai-generated mtg card tasks
+Momir is a set of tools for using AI models to generate Magic: The Gathering cards.
 
-(eventually, a workflow for generating cockatrice-playable ai-generated decks)
+This works by fine-tuning a customized version of OpenAI's ChatGPT for card generation.
 
-basic idea:
-
-1. AI-generated cards might benefit from being trained on only an interesting subset of the cardpool rather than on the whole thing.
-
-2. One "interesting subset" of the cardpool is "stuff that has been used in legacy"
-
-3. Running the scripts in order w/o additional flags prepares training data of an "interesting subset". By default: stuff ever used in a winning legacy maindeck. This is done by getting a list of all-card-and-all-card-data, scraping a whitelist of card names, using that whitelist to exclude the irrelevant 90%ish of the cardpool, and conforming the relevant part of the remaining info into completions.
-
-  * There are also flags available for scraping different and/or smaller segments of the cardpool, and even for doing no scraping & instead using simple format legality as the filter.
-
-4. This can be used to fine-tune a model and have it make cards for you.
-
-### tl;dr instructions:
-
-0. preliminary:
-    
-    i. install dependencies / requirements
-
-      * run `pip install -r requirements.txt`
-
-      * install firefox
-
-    ii. make an [openai account](https://openai.com/api/pricing/), create an api key, and store the key in your PATH as OPENAI_API_KEY.
-    
-    how to store the key:
-    * windows, powershell (maybe cmd works too?):
-      * run `setx OPENAI_API_KEY "YOURKEYHERE"`
-      * close + reopen window
-    * unixlike: 
-      * run `echo "export OPENAI_API_KEY='YOURKEYHERE'" >> ~/.zshrc`
-        * (or `… >> ~/.bashrc` or similar if applicable)
-      * run `source ~/.zshrc`
-        * (or `… >> ~/.bashrc` or similar if applicable)
-
-1. run `python scrape.py`
-
-    if mtgtop8 is cooperative, this will scrape its data and store in `/output`
-
-2. run `python dataset.py`
-
-    will process scrape data to create a training dataset and store as `/output/trainingdata.jsonl`
-
-3. run `openai api fine_tunes.create -t output/training_data.jsonl -m davinci --n_epochs 1 --learning_rate_multiplier 0.02`
-
-    this will output a "model name"; copy this & paste it into "YOURMODELNAMEHERE" in the `make….py` command in the next step.
-
-4. run a `make….py` command:
-  
-    * `python makecard.py --model "YOURMODELNAMEHERE" --quantity 10`
-  generate 10 creatures and print them
-
-    * `python makedeck.py --model "YOURMODELNAMEHERE" --output "save"`
-  generate one 60-card deck and and save it to `output/Deck_TIMESTAMP.txt`
-
-    * ~~`python makeset.py --model "YOURMODELHERE"`
-  generate one 350-card set and save it to `output/Set_TIMESTAMP.txt`~~ ***coming soon***
-
-5. ~~pictures.py card image generation~~ ***coming soon***
-
-6. ~~cockatrice.py cockatrice data generation~~ ***coming soon***
-
----
+Eventually, it will also produce card images and configuration files to make the cards usable in Cockatrice.
 
 ### examples:
 
@@ -130,6 +69,67 @@ power: 0
 toughness: 0
 ```
 ⬆ sometimes the output is sort of bad. sometimes a bad output is funny. this is a lot of words for what amounts to "0: exile target creature" 😂
+
+---
+
+### basic idea:
+
+1. AI-generated cards might benefit from being trained on only an interesting subset of the cardpool rather than on the whole thing.
+
+2. Running the scripts in order described below prepares training data of an "interesting subset". By default: stuff ever used in a winning legacy maindeck. This is done by getting a list of all-card-and-all-card-data, scraping a whitelist of card names, using that whitelist to exclude the irrelevant majority of the cardpool, and conforming the relevant part of the remaining info into completions.
+
+  * There are also flags available for scraping different and/or smaller segments of the cardpool, or for instead using simple format legality as the filter.
+
+4. This can be used to fine-tune a model and have it make cards for you.
+
+### tl;dr instructions:
+
+0. preliminary:
+    
+    i. install dependencies / requirements
+
+      * run `pip install -r requirements.txt`
+
+      * install firefox
+
+    ii. make an [openai account](https://openai.com/api/pricing/), create an api key, and store the key in your PATH as OPENAI_API_KEY.
+    
+    how to store the key:
+    * windows, powershell (maybe cmd works too?):
+      * run `setx OPENAI_API_KEY "YOURKEYHERE"`
+      * close + reopen window
+    * unixlike: 
+      * run `echo "export OPENAI_API_KEY='YOURKEYHERE'" >> ~/.zshrc`
+        * (or `… >> ~/.bashrc` or similar if applicable)
+      * run `source ~/.zshrc`
+        * (or `… >> ~/.bashrc` or similar if applicable)
+
+1. run `python scrape.py`
+
+    if mtgtop8 is cooperative, this will scrape its data and store in `/output`
+
+2. run `python dataset.py`
+
+    will process scrape data to create a training dataset and store as `/output/trainingdata.jsonl`
+
+3. run `openai api fine_tunes.create -t output/training_data.jsonl -m davinci --n_epochs 1 --learning_rate_multiplier 0.02`
+
+    this will output a "model name"; copy this & paste it into "YOURMODELNAMEHERE" in the `make….py` command in the next step.
+
+4. run a `make….py` command:
+  
+    * `python makecard.py --model "YOURMODELNAMEHERE" --quantity 10`
+  generate 10 creatures and print them
+
+    * `python makedeck.py --model "YOURMODELNAMEHERE" --output "save"`
+  generate one 60-card deck and and save it to `output/Deck_TIMESTAMP.txt`
+
+    * ~~`python makeset.py --model "YOURMODELHERE"`
+  generate one 350-card set and save it to `output/Set_TIMESTAMP.txt`~~ ***coming soon***
+
+5. ~~pictures.py card image generation~~ ***coming soon***
+
+6. ~~cockatrice.py cockatrice data generation~~ ***coming soon***
 
 ---
 
