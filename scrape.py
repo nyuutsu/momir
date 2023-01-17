@@ -5,19 +5,30 @@ from os import makedirs
 from os.path import join
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.service import Service as FirefoxService
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support.expected_conditions import staleness_of
+from webdriver_manager.firefox import GeckoDriverManager
 
 def scrape_format(args):
   logging.info('beginning scrape_format()')
   cards = ""
   page_counter = 1
-  firefox_options = Options()
-  if args.headless == 'true':
-    firefox_options.add_argument("--headless")
-  driver = webdriver.Firefox(service_log_path=join('logs', 'geckodriver.log'), options=firefox_options)
   
+  driver_options = Options()
+  if args.headless == 'true':
+    driver_options.add_argument("--headless")
+  driver_options.add_argument("--width=800")  # 🤫
+  driver_options.add_argument("--height=600")  # 🤫
+  driver_options.set_preference("general.useragent.override", "userAgent=Mozilla/5.0 (X11; Linux i686; rv:109.0) Gecko/20100101 Firefox/109.0")  # 🤫
+  # previous approach worked but warns ~"this way of doing it is deprecated!"
+  # new way MIGHT work
+  driver_options.add_argument('--MOZ_LOG_FILE="./logs/browser.log"')
+  # solution to "what if they don't have it?": make them have it
+  driver = webdriver.Firefox(service=FirefoxService(GeckoDriverManager().install()), options=driver_options)
+  driver.execute()
+    
   driver.implicitly_wait(10)
 
   with open(join('config', 'format_abbreviations.json')) as file:
@@ -89,7 +100,6 @@ def main():
   arguments = parse_args()
   scrape_result = scrape_format(arguments)
   log_to_file(scrape_result, arguments)
-
 
 if __name__ == '__main__':
   main()
